@@ -3,19 +3,19 @@
 // Definition of eZGmapLocation class
 //
 // SOFTWARE NAME: Blend Gmap Location Class
-// SOFTWARE RELEASE: 0.3
-// COPYRIGHT NOTICE: Copyright (C) 2006 Blend Interactive
+// SOFTWARE RELEASE: 0.5
+// COPYRIGHT NOTICE: Copyright (C) 2006-2009 Blend Interactive
 // SOFTWARE LICENSE: GNU General Public License v2.0
 // NOTICE: >
 //   This program is free software; you can redistribute it and/or
 //   modify it under the terms of version 2.0  of the GNU General
 //   Public License as published by the Free Software Foundation.
-// 
+//
 //   This program is distributed in the hope that it will be useful,
 //   but WITHOUT ANY WARRANTY; without even the implied warranty of
 //   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //   GNU General Public License for more details.
-// 
+//
 //   You should have received a copy of version 2.0 of the GNU General
 //   Public License along with this program; if not, write to the Free
 //   Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
@@ -29,7 +29,7 @@
 /*!
   \class eZGmapLocation ezgmaplocation.php
   \ingroup eZDatatype
-  \brief The class eZGmapLocation provides a datatype for storing 
+  \brief The class eZGmapLocation provides a datatype for storing
   \latitude & longitude values.
 
 */
@@ -39,7 +39,7 @@ class eZGmapLocation
     /*!
      Constructor
     */
-    function eZGmapLocation( $latitude, $longitude )
+    function __construct( $latitude, $longitude )
     {
         $this->Latitude = $latitude;
         $this->Longitude = $longitude;
@@ -59,7 +59,7 @@ class eZGmapLocation
         return in_array( $name, $this->attributes() );
     }
 
-    function &attribute( $name )
+    function attribute( $name )
     {
         switch ( $name )
         {
@@ -73,7 +73,7 @@ class eZGmapLocation
             }break;
             default:
             {
-                eZDebug::writeError( "Attribute '$name' does not exist", 'eZGmapLocation::attribute' );
+                eZDebug::writeError( "Attribute '$name' does not exist", __METHOD__ );
                 $retValue = null;
                 return $retValue;
             }break;
@@ -83,23 +83,21 @@ class eZGmapLocation
 
     function decodeXML( $xmlString )
     {
-        include_once( 'lib/ezxml/classes/ezxml.php' );
-
-        $xml = new eZXML();
-
-
-        $dom =& $xml->domTree( $xmlString );
+        $dom = new DOMDocument( '1.0', 'utf-8' );
 
         if ( $xmlString != "" )
         {
-            $locationElement =& $dom->root( );
+            $success = $dom->loadXML( $xmlString );
+            if ( !$success )
+            {
+                eZDebug::writeError( 'Failed loading XML', __METHOD__ );
+                return false;
+            }
 
-            $latitude = $locationElement->attributeValue( 'latitude' );
-            $longitude = $locationElement->attributeValue( 'longitude' );
+            $locationElement = $dom->documentElement;
 
-            $this->Latitude = $latitude;
-            $this->Longitude = $longitude;
-
+            $this->Latitude = $locationElement->getAttribute( 'latitude' );
+            $this->Longitude = $locationElement->getAttribute( 'longitude' );
         }
         else
         {
@@ -109,20 +107,16 @@ class eZGmapLocation
     }
 
 
-    function &xmlString( )
+    function xmlString()
     {
-        include_once( 'lib/ezxml/classes/ezdomdocument.php' );
+        $doc = new DOMDocument( '1.0', 'utf-8' );
 
-        $doc = new eZDOMDocument( "Location" );
+        $root = $doc->createElement( 'ezgmaplocation' );
+        $root->setAttribute( 'latitude', $this->Latitude );
+        $root->setAttribute( 'longitude', $this->Longitude );
+        $doc->appendChild( $root );
 
-        $root = $doc->createElementNode( "ezgmaplocation" );
-        $root->appendAttribute( $doc->createAttributeNode( "latitude", $this->Latitude ) );
-        $root->appendAttribute( $doc->createAttributeNode( "longitude", $this->Longitude ) );
-        $doc->setRoot( $root );
-
-        $xml = $doc->toString();
-
-        return $xml;
+        return $doc->saveXML();
     }
 
     function setLatitude( $value )
@@ -136,8 +130,8 @@ class eZGmapLocation
     }
 
 
-    var $Latitude;
-    var $Longitude;
+    private $Latitude;
+    private $Longitude;
 }
 
 ?>
